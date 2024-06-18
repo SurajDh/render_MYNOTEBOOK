@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const mongoURI = `mongodb+srv://supermanncps:0BkzLzVeLj2nwjpE@notebook.jcfxb6a.mongodb.net/?retryWrites=true&w=majority&appName=notebook`;
+const mongoURI = process.env.REACT_APP_DBSTRING;
 
 const connectToMongo = async () =>{
     mongoose.connect(mongoURI);
