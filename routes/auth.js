@@ -33,8 +33,7 @@ router.post('/createuser', [
 
 
         //creating a new user , POST : "api/auth/creatreuser" : login not required         
-        const salt = await bcrypt.genSalt(10);
-        const secPass = await bcrypt.hash(req.body.password, salt);
+        const secPass = securePassword(req.body.password);
         user = await User.create({
             name: req.body.name,
             email: req.body.email,
@@ -55,9 +54,59 @@ router.post('/createuser', [
     }
 });
 
+const securePassword= async (password)=>{
+    const salt = await bcrypt.genSalt(10);
+    const secPass = await bcrypt.hash(password, salt);
+    return secPass;
+}
+
+//changing details (name , password) , PUT : "api/auth/changedetails" : login required  
+router.put('/changedetails',[
+    body('newname'),
+    body('email').isEmail(),
+    body('password'),
+    body('newpassword'),
+],async(req,res)=>{
+    let success=false;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.send({ success, errors: errors.array() })
+    }
+
+    const{newname,email,password,newpassword}=req.body;
+
+    try {
+        const newUser = {};
+        if (newname) { newUser.name = newname }
+        if (password) { newUser.password = await securePassword(newpassword) }
+
+        let user=await User.findOne({email});
+        if(!user){
+
+            return res.status(400).json({success ,error:"Enter valid credentials"});
+        }
 
 
+        if(newpassword){
+            const comparePassword= await bcrypt.compare(password,user.password);
+            if(!comparePassword){
+                
+                return res.status(400).json({success , error:"Enter valid credentials"})
 
+            }
+        }
+        user = await User.findByIdAndUpdate(user._id, { $set: newUser }, { new: true });
+        res.json({success:true,user});
+
+
+    }catch (error) {
+
+        res.status(500).send(success,"Internal Server Error");
+    }
+
+})
+
+/////////////////////////////
 
 //authenticate a user, POST : "api/auth/login" : login not required
 
@@ -72,10 +121,11 @@ router.post('/login', [
         return res.send({ success, errors: errors.array() })
     }
 
-
     const{email,password}=req.body;
 
     try {
+
+
         let user=await User.findOne({email});
         if(!user){
             success=false;
@@ -111,10 +161,9 @@ router.post('/login', [
 
 router.post('/getuser', fetchuser, async (req, res) => {
 
-
 try {
     const userId=req.user.id;
-    const user=await User.findById(userId).select("-password");
+    const user=await User.findById(userId).select('-password');
     res.send(user);
     
 } catch (error) {
@@ -122,5 +171,6 @@ try {
         res.status(500).send(success, "Internal Server Error");
 }
 });
+
 
 module.exports = router;
