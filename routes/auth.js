@@ -31,9 +31,8 @@ router.post('/createuser', [
             return res.status(400).json({ success ,error: "This email is already" });
         }
 
-
         //creating a new user , POST : "api/auth/creatreuser" : login not required         
-        const secPass = securePassword(req.body.password);
+        const secPass = await securePassword(req.body.password);
         user = await User.create({
             name: req.body.name,
             email: req.body.email,
